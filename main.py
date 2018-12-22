@@ -21,7 +21,7 @@ class Song(object):
 
 
 class SmashBrosMusicCrawler(object):
-    SOURCE_URL = 'http://smashbros-miiverse.com/music&#39;
+    SOURCE_URL = 'http://smashbros-ultimate.com/music'
     OUTPUT_DIR = os.path.join(os.path.dirname(__file__), 'musics')
 
     def __init__(self):

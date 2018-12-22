@@ -1,2 +1,3 @@
 pafy
 beautifulsoup4
+youtube_dl
