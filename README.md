@@ -2,7 +2,7 @@
 
 Download all musics listed on [here](http://smashbros-ultimate.com/music).
 
-Create your own soundtrucks.
+Create your own soundtrcks.
 
 ```sh
 $ pip install -r requirements.txt
