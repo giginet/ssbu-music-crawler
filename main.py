@@ -1,5 +1,6 @@
 import os
 import pafy
+import urllib
 import urllib.request
 from bs4 import BeautifulSoup
 from pydub import AudioSegment
@@ -7,8 +8,8 @@ from pydub import AudioSegment
 class Truncator(object):
     DURATION = 300 * 1000
     FADEOUT_DURATION = 3 * 1000
-    OUTPUT_FORMAT = "aiff"
-    OUTPUT_EXTENSION = "aac"
+    OUTPUT_FORMAT = "mp3"
+    OUTPUT_EXTENSION = "mp3"
 
     def __init__(self, song):
         self.song = song
@@ -16,13 +17,15 @@ class Truncator(object):
 
     def save_truncated(self, dir):
         truncated = self.segment[:self.DURATION].fade_out(self.FADEOUT_DURATION)
-        basename = os.path.splitext(os.path.basename(self.song.path))[0]
-        output_filename = f"{basename}.{self.OUTPUT_EXTENSION}"
+        basename = self.song.name
+        output_filename = urllib.parse.quote_plus(f"{basename}.{self.OUTPUT_EXTENSION}")
         output_path = os.path.join(dir, output_filename)
         tags = {'title': self.song.name,
                 'artist': self.song.artist, 
+                'genre': 'Soundtrack',
+                'album': 'Super Smash Bros. Ultimate',
                 'comments': self.song.videoId}
-        truncated.export(output_path, format=self.OUTPUT_FORMAT, tags=tags)
+        truncated.export(output_path, bitrate="256k", format=self.OUTPUT_FORMAT, tags=tags)
 
 
 class Song(object):
@@ -81,13 +84,13 @@ class SmashBrosMusicCrawler(object):
         for i, song in enumerate(songs):
             info = (str(song), i + 1, count)
             song.fetch()
-            checked = filter(lambda f: f.startswith(song.videoId), already_downloaded)
-            if len(list(checked)) != 0: 
-                print("{0} is already downloaded".format(*info))
+            checked = [f for f in already_downloaded if f.startswith(song.videoId) and not f.endswith(".temp")]
+            if len(checked) != 0: 
+                print("{0} ({1} / {2}) is already downloaded".format(*info))
             else:
                 print("Fetch {0} ({1} / {2})".format(*info))
                 song.download()
-            print(f"Truncate {song.name}")
+            print("Truncating...")
             truncator = Truncator(song)
             truncator.save_truncated(self.TRUNCATED_OUTPUT_DIR)
 
