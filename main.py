@@ -2,8 +2,32 @@ import os
 import pafy
 import urllib.request
 from bs4 import BeautifulSoup
+from pydub import AudioSegment
+
+class Truncator(object):
+    DURATION = 300 * 1000
+    FADEOUT_DURATION = 3 * 1000
+    OUTPUT_FORMAT = "aiff"
+    OUTPUT_EXTENSION = "aac"
+
+    def __init__(self, song):
+        self.song = song
+        self.segment = AudioSegment.from_file(song.path, song.extension)
+
+    def save_truncated(self, dir):
+        truncated = self.segment[:self.DURATION].fade_out(self.FADEOUT_DURATION)
+        basename = os.path.splitext(os.path.basename(self.song.path))[0]
+        output_filename = f"{basename}.{self.OUTPUT_EXTENSION}"
+        output_path = os.path.join(dir, output_filename)
+        tags = {'title': self.song.name,
+                'artist': self.song.artist, 
+                'comments': self.song.videoId}
+        truncated.export(output_path, format=self.OUTPUT_FORMAT, tags=tags)
+
 
 class Song(object):
+    OUTPUT_DIR = os.path.join(os.path.dirname(__file__), 'musics', 'original')
+
     def __init__(self, name, artist, videoId):
         self.name = name
         self.artist = artist
@@ -13,21 +37,25 @@ class Song(object):
     def __str__(self):
         return "{}({})".format(self.name, self.artist)
 
-    def download(self, dir):
-        if not self.youtube:
-            self.youtube = pafy.new(self.videoId)
-        stream = self.youtube.getbestaudio()
-        stream.download(dir)
+    def fetch(self):
+        self.youtube = pafy.new(self.videoId)
+        self.stream = self.youtube.getbestaudio()
+        self.extension = self.stream.extension
+        self.path = os.path.join(self.OUTPUT_DIR, f"{self.videoId}.{self.extension}")
+
+    def download(self):
+        if self.youtube:
+            self.stream.download(self.path)
 
 
 class SmashBrosMusicCrawler(object):
     SOURCE_URL = 'http://smashbros-ultimate.com/music'
-    OUTPUT_DIR = os.path.join(os.path.dirname(__file__), 'musics')
+    ORIGINAL_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), 'musics', 'original')
+    TRUNCATED_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), 'musics', 'truncated')
 
     def __init__(self):
-        dir = self.OUTPUT_DIR
-        if not os.path.exists(dir):
-            os.mkdir(dir)
+        os.makedirs(self.ORIGINAL_OUTPUT_DIR, exist_ok=True)
+        os.makedirs(self.TRUNCATED_OUTPUT_DIR, exist_ok=True)
 
     def fetch(self):
         print("Fetching Music List")
@@ -49,10 +77,19 @@ class SmashBrosMusicCrawler(object):
 
         songs = [parse_song(song) for song in song_elems]
         count = len(songs)
+        already_downloaded = os.listdir(self.ORIGINAL_OUTPUT_DIR)
         for i, song in enumerate(songs):
             info = (str(song), i + 1, count)
-            print("Fetch {0} ({1} / {2})".format(*info))
-            song.download(self.OUTPUT_DIR)
+            song.fetch()
+            checked = filter(lambda f: f.startswith(song.videoId), already_downloaded)
+            if len(list(checked)) != 0: 
+                print("{0} is already downloaded".format(*info))
+            else:
+                print("Fetch {0} ({1} / {2})".format(*info))
+                song.download()
+            print(f"Truncate {song.name}")
+            truncator = Truncator(song)
+            truncator.save_truncated(self.TRUNCATED_OUTPUT_DIR)
 
 
 if __name__ == '__main__':
