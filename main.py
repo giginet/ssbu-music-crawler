@@ -1,6 +1,5 @@
 import os
 import pafy
-import urllib
 import urllib.request
 from bs4 import BeautifulSoup
 from pydub import AudioSegment
@@ -16,16 +15,19 @@ class Truncator(object):
         self.segment = AudioSegment.from_file(song.path, song.extension)
 
     def save_truncated(self, dir):
-        truncated = self.segment[:self.DURATION].fade_out(self.FADEOUT_DURATION)
-        basename = self.song.name
-        output_filename = urllib.parse.quote_plus(f"{basename}.{self.OUTPUT_EXTENSION}")
+        if self.segment.duration_seconds >= 300:
+            converted = self.segment[:self.DURATION].fade_out(self.FADEOUT_DURATION)
+        else:
+            converted = self.segment
+        basename = self.song.videoId
+        output_filename = f"{basename}.{self.OUTPUT_EXTENSION}"
         output_path = os.path.join(dir, output_filename)
         tags = {'title': self.song.name,
                 'artist': self.song.artist, 
                 'genre': 'Soundtrack',
                 'album': 'Super Smash Bros. Ultimate',
                 'comments': self.song.videoId}
-        truncated.export(output_path, bitrate="256k", format=self.OUTPUT_FORMAT, tags=tags)
+        converted.export(output_path, bitrate="256k", format=self.OUTPUT_FORMAT, tags=tags)
 
 
 class Song(object):
@@ -90,7 +92,7 @@ class SmashBrosMusicCrawler(object):
             else:
                 print("Fetch {0} ({1} / {2})".format(*info))
                 song.download()
-            print("Truncating...")
+            print("Converting...")
             truncator = Truncator(song)
             truncator.save_truncated(self.TRUNCATED_OUTPUT_DIR)
 
