@@ -66,7 +66,7 @@ class SmashBrosMusicCrawler(object):
         print("Fetching Music List")
         response = urllib.request.urlopen(self.SOURCE_URL)
         html = response.read()
-        soup = BeautifulSoup(html)
+        soup = BeautifulSoup(html, features="html.parser")
         # `class`をキーワード引数に渡すことはできない
         song_elems = soup.find_all(**{'class': 'songLine'})
 
