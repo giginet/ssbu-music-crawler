@@ -56,11 +56,11 @@ class Song(object):
 class SmashBrosMusicCrawler(object):
     SOURCE_URL = 'http://smashbros-ultimate.com/music'
     ORIGINAL_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), 'musics', 'original')
-    TRUNCATED_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), 'musics', 'truncated')
+    CONVERTED_OUTPUT_DIR = os.path.join(os.path.dirname(__file__), 'musics', 'truncated')
 
     def __init__(self):
         os.makedirs(self.ORIGINAL_OUTPUT_DIR, exist_ok=True)
-        os.makedirs(self.TRUNCATED_OUTPUT_DIR, exist_ok=True)
+        os.makedirs(self.CONVERTED_OUTPUT_DIR, exist_ok=True)
 
     def fetch(self):
         print("Fetching Music List")
@@ -83,6 +83,7 @@ class SmashBrosMusicCrawler(object):
         songs = [parse_song(song) for song in song_elems]
         count = len(songs)
         already_downloaded = os.listdir(self.ORIGINAL_OUTPUT_DIR)
+        already_converted = os.listdir(self.CONVERTED_OUTPUT_DIR)
         for i, song in enumerate(songs):
             info = (str(song), i + 1, count)
             song.fetch()
@@ -90,11 +91,15 @@ class SmashBrosMusicCrawler(object):
             if len(checked) != 0: 
                 print("{0} ({1} / {2}) is already downloaded".format(*info))
             else:
-                print("Fetch {0} ({1} / {2})".format(*info))
+                print("Fetching {0} ({1} / {2})".format(*info))
                 song.download()
-            print("Converting...")
-            truncator = Truncator(song)
-            truncator.save_truncated(self.TRUNCATED_OUTPUT_DIR)
+            checked = [f for f in already_downloaded if f.startswith(song.videoId) and not f.endswith(".temp")]
+            if len(checked) != 0: 
+                print("Skip Converting")
+            else:
+                print("Converting...")
+                truncator = Truncator(song)
+                truncator.save_truncated(self.CONVERTED_OUTPUT_DIR)
 
 
 if __name__ == '__main__':
