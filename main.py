@@ -103,9 +103,9 @@ class SmashBrosMusicCrawler(object):
             	    truncator = Truncator(song)
             	    truncator.save_truncated(self.CONVERTED_OUTPUT_DIR)
             except youtube_dl.utils.ExtractorError:
-               print(end = "")
+               print("Extraction causes an error. Continuing for other musics.")
             except youtube_dl.utils.DownloadError:
-               print(end = "")
+               print("Downloading causes an error. Continuing for other musics.")
             except OSError:
                print(end = "")
 
