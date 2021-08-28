@@ -1,6 +1,7 @@
 import os
 import pafy
 import urllib.request
+import youtube_dl
 from bs4 import BeautifulSoup
 from pydub import AudioSegment
 
@@ -86,20 +87,27 @@ class SmashBrosMusicCrawler(object):
         already_converted = os.listdir(self.CONVERTED_OUTPUT_DIR)
         for i, song in enumerate(songs):
             info = (str(song), i + 1, count)
-            song.fetch()
-            checked = [f for f in already_downloaded if f.startswith(song.videoId) and not f.endswith(".temp")]
-            if len(checked) != 0: 
-                print("{0} ({1} / {2}) is already downloaded".format(*info))
-            else:
-                print("Fetching {0} ({1} / {2})".format(*info))
-                song.download()
-            checked = [f for f in already_downloaded if f.startswith(song.videoId) and not f.endswith(".temp")]
-            if len(checked) != 0: 
-                print("Skip Converting")
-            else:
-                print("Converting...")
-                truncator = Truncator(song)
-                truncator.save_truncated(self.CONVERTED_OUTPUT_DIR)
+            try:
+            	song.fetch()
+            	checked = [f for f in already_downloaded if f.startswith(song.videoId) and not f.endswith(".temp")]
+            	if len(checked) != 0: 
+            	    print("{0} ({1} / {2}) is already downloaded".format(*info))
+            	else:
+            	    print("Fetching {0} ({1} / {2})".format(*info))
+            	    song.download()
+            	checked = [f for f in already_downloaded if f.startswith(song.videoId) and not f.endswith(".temp")]
+            	if len(checked) != 0: 
+            	    print("Skip Converting")
+            	else:
+            	    print("Converting...")
+            	    truncator = Truncator(song)
+            	    truncator.save_truncated(self.CONVERTED_OUTPUT_DIR)
+            except youtube_dl.utils.ExtractorError:
+               print("Extraction causes an error. Continuing for other musics.")
+            except youtube_dl.utils.DownloadError:
+               print("Downloading causes an error. Continuing for other musics.")
+            except OSError:
+               print(end = "")
 
 
 if __name__ == '__main__':
